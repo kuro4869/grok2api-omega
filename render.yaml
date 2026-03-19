@@ -11,8 +11,10 @@ services:
         value: Asia/Shanghai
       - key: LOG_LEVEL
         value: INFO
+      - key: APP_KEY
+        value: ""
       - key: SERVER_STORAGE_TYPE
-        value: local
+        value: pgsql
       - key: SERVER_STORAGE_URL
         value: ""
       - key: SERVER_HOST
