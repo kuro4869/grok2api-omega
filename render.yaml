@@ -2,7 +2,7 @@ services:
   - type: web
     name: grok2api
     env: docker
-    region: singapore
+    region: Oregon
     plan: free
     autoDeploy: false
     dockerfilePath: ./Dockerfile
