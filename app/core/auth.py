@@ -3,6 +3,7 @@ API 认证模块
 """
 
 from typing import Optional
+import os
 from fastapi import HTTPException, status, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -33,7 +34,13 @@ def get_admin_api_key() -> str:
 def get_app_key() -> str:
     """
     获取 App Key（后台管理密码）。
+
+    优先级：环境变量 APP_KEY > 远端配置 app.app_key > 默认值
     """
+    env_app_key = (os.getenv("APP_KEY", "") or "").strip()
+    if env_app_key:
+        return env_app_key
+
     app_key = get_config("app.app_key", DEFAULT_APP_KEY)
     return app_key or ""
 

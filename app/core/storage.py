@@ -24,6 +24,7 @@ try:
 except ImportError:  # pragma: no cover - non-posix platforms
     fcntl = None
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 import orjson
 import aiofiles
@@ -767,18 +768,48 @@ class StorageFactory:
     def _normalize_sql_url(storage_type: str, url: str) -> str:
         if not url or "://" not in url:
             return url
+
         if storage_type == "mysql":
             if url.startswith("mysql://"):
                 return f"mysql+aiomysql://{url[len('mysql://') :]}"
             if url.startswith("mariadb://"):
                 return f"mariadb+aiomysql://{url[len('mariadb://') :]}"
+            return url
+
         if storage_type == "pgsql":
+            # 统一 scheme 到 asyncpg
             if url.startswith("postgres://"):
-                return f"postgresql+asyncpg://{url[len('postgres://') :]}"
-            if url.startswith("postgresql://"):
-                return f"postgresql+asyncpg://{url[len('postgresql://') :]}"
-            if url.startswith("pgsql://"):
-                return f"postgresql+asyncpg://{url[len('pgsql://') :]}"
+                url = f"postgresql+asyncpg://{url[len('postgres://') :]}"
+            elif url.startswith("postgresql://"):
+                url = f"postgresql+asyncpg://{url[len('postgresql://') :]}"
+            elif url.startswith("pgsql://"):
+                url = f"postgresql+asyncpg://{url[len('pgsql://') :]}"
+
+            # Neon/libpq 常见参数兼容到 asyncpg
+            try:
+                parts = urlsplit(url)
+                q = dict(parse_qsl(parts.query, keep_blank_values=True))
+
+                # channel_binding 不是 asyncpg connect() 参数，移除
+                q.pop("channel_binding", None)
+
+                # sslmode -> ssl 兼容映射（asyncpg 支持 ssl=...）
+                sslmode = (q.pop("sslmode", "") or "").strip().lower()
+                if sslmode:
+                    if sslmode in ("disable",):
+                        q["ssl"] = "false"
+                    else:
+                        # require/verify-ca/verify-full/prefer/allow 都走 TLS
+                        q["ssl"] = "require"
+
+                new_query = urlencode(q)
+                url = urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
+            except Exception:
+                # 解析失败时保留原 URL（不阻断启动）
+                pass
+
+            return url
+
         return url
 
     @classmethod
