@@ -30,6 +30,24 @@ from fastapi import Depends  # noqa: E402
 
 from app.core.auth import verify_api_key  # noqa: E402
 from app.core.config import get_config  # noqa: E402
+
+# ============================================================
+# [Env Proxy Patch] 通过环境变量 GROK2API_PROXY_BASE_PROXY_URL
+# 让所有 curl_cffi AsyncSession 自动使用代理（session 级别）
+# 上游更新后只需重新添加此段即可，不影响其他代码。
+# ============================================================
+_env_proxy = os.getenv("GROK2API_PROXY_BASE_PROXY_URL", "").strip()
+if _env_proxy:
+    from curl_cffi.requests import AsyncSession
+    _orig_async_session_init = AsyncSession.__init__
+    def _patched_session_init(self, *args, **kwargs):
+        if "proxy" not in kwargs:
+            kwargs["proxy"] = _env_proxy
+        return _orig_async_session_init(self, *args, **kwargs)
+    AsyncSession.__init__ = _patched_session_init
+    import logging
+    logging.getLogger("app").info(f"[env_proxy] AsyncSession monkey-patched: proxy={_env_proxy}")
+# ============================================================
 from app.core.logger import logger, setup_logging  # noqa: E402
 from app.core.exceptions import register_exception_handlers  # noqa: E402
 from app.core.response_middleware import ResponseLoggerMiddleware  # noqa: E402
