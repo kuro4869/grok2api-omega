@@ -19,3 +19,5 @@ services:
         value: 0.0.0.0
       - key: SERVER_PORT
         value: "8000"
+      - key: GROK2API_PROXY_BASE_PROXY_URL
+        value: http://US:5shvtLVM3C3T@proxy.dzxlol.com:2261
