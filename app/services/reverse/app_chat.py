@@ -300,6 +300,7 @@ class AppChatReverse:
             # Get proxies
             base_proxy = get_config("proxy.base_proxy_url")
             proxies = {"http": base_proxy, "https": base_proxy} if base_proxy else None
+            logger.info(f"[proxy_debug] base_proxy_url='{base_proxy}', proxies={proxies}")
 
             # Build payload
             payload = AppChatReverse.build_payload(
@@ -422,6 +423,7 @@ class AppChatReverse:
                         f"AppChatReverse: Chat failed, {response.status_code}",
                         extra={"error_type": "UpstreamException"},
                     )
+                    logger.info(f"[proxy_debug] Chat 403 - proxies={proxies}")
                     logger.error(f"Response Headers: {response.headers}")
                     logger.error(f"Response Body: {content}")
                     details = {"status": response.status_code, "body": content}
